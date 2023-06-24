@@ -28,11 +28,24 @@ public class ChatHub : Hub
         var db = _redis.GetDatabase();
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList(); ;
 
-        await Clients.Caller.SendAsync("LoadMessages", messages);
+       // await Clients.Caller.SendAsync("LoadMessages", messages);
+        await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
     }
 
     public async Task LeaveGroup(string groupName)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+    }
+
+
+     public async Task DeleteGroupMessages(string groupName)
+    {
+        var db = _redis.GetDatabase();
+        var totalMessages = db.ListLength(groupName);
+
+        // Eliminar todos los mensajes del grupo
+        db.ListTrim(groupName, totalMessages, 0);
+        var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();
+        await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
     }
 }
