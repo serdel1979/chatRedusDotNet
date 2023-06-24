@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ChatApi.DTOs;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
 
@@ -24,15 +25,15 @@ namespace ChatApi.Controllers
         public IActionResult Get()
         {
             var db = _redis.GetDatabase();
-            var messages = db.ListRange("messages");
+            var messages = db.ListRange("messages").Select(x => x.ToString()).ToList();
             return Ok(messages);
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] string message)
+        public IActionResult Post(MessageDTO message)
         {
             var db = _redis.GetDatabase();
-            db.ListRightPush("messages", message);
+            db.ListRightPush("messages", message.Message);
             return Ok();
         }
 
