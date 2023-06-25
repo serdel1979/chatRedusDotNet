@@ -11,7 +11,7 @@ public class ChatHub : Hub
     {
         _redis = redis;
     }
-    public async Task SendMessage(string groupName, string message)
+    public async Task SendMessageChat(string groupName, string message)
     {
         var db = _redis.GetDatabase();
         db.ListRightPush(groupName, message);
@@ -21,24 +21,24 @@ public class ChatHub : Hub
         await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
     }
 
-    public async Task JoinGroup(string groupName)
+    public async Task JoinGroupChat(string groupName)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
         var db = _redis.GetDatabase();
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList(); ;
 
-       // await Clients.Caller.SendAsync("LoadMessages", messages);
-        await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
+        await Clients.Caller.SendAsync("LoadMessages", messages);
+       // await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
     }
 
-    public async Task LeaveGroup(string groupName)
+    public async Task LeaveGroupChat(string groupName)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 
 
-     public async Task DeleteGroupMessages(string groupName)
+     public async Task DeleteGroupMessagesChat(string groupName)
     {
         var db = _redis.GetDatabase();
         var totalMessages = db.ListLength(groupName);
