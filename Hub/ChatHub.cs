@@ -18,7 +18,7 @@ public class ChatHub : Hub
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();  //db.ListRange("messages").Select(x => x.ToString()).ToList();
 
         //await Clients.Caller.SendAsync("LoadMessages", messages);
-        await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
+        await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, messages);
     }
 
     public async Task JoinGroupChat(string groupName)
