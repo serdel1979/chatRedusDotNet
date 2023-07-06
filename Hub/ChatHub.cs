@@ -78,6 +78,10 @@ public class ChatHub : Hub
 
     public Dictionary<string, bool> GetNewMessageIndicators()
     {
+        foreach (var kvp in _newMessageIndicators)
+        {
+            Console.WriteLine($"Group: {kvp.Key}, HasNewMessages: {kvp.Value}");
+        }
         return _newMessageIndicators;
     }
 
