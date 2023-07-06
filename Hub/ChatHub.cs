@@ -71,4 +71,12 @@ public class ChatHub : Hub
     {
         return _newMessageIndicators.Values.Any(value => value);
     }
+
+
+    public Dictionary<string, bool> GetNewMessageIndicators()
+    {
+        return _newMessageIndicators;
+    }
+
+
 }
