@@ -20,10 +20,11 @@ public class ChatHub : Hub
         db.ListRightPush(groupName, message);
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();  //db.ListRange("messages").Select(x => x.ToString()).ToList();
 
+
+        _newMessageIndicators[groupName] = true;
         //await Clients.Caller.SendAsync("LoadMessages", messages);
         await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, messages);
 
-        _newMessageIndicators[groupName] = true;
     }
 
     public async Task JoinGroupChat(string groupName)
@@ -62,9 +63,11 @@ public class ChatHub : Hub
         // Eliminar todos los mensajes del grupo
         db.ListTrim(groupName, totalMessages, 0);
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();
-        await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
 
         _newMessageIndicators[groupName] = false;
+
+        await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
+       
     }
 
     public bool AnyGroupHasNewMessages()
