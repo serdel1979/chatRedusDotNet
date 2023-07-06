@@ -7,9 +7,12 @@ public class ChatHub : Hub
 
     private readonly IConnectionMultiplexer _redis;
 
+    private readonly Dictionary<string, bool> _newMessageIndicators;
+
     public ChatHub(IConnectionMultiplexer redis)
     {
         _redis = redis;
+        _newMessageIndicators = new Dictionary<string, bool>();
     }
     public async Task SendMessageChat(string groupName, string message)
     {
@@ -19,6 +22,8 @@ public class ChatHub : Hub
 
         //await Clients.Caller.SendAsync("LoadMessages", messages);
         await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, messages);
+
+        _newMessageIndicators[groupName] = true;
     }
 
     public async Task JoinGroupChat(string groupName)
@@ -58,5 +63,12 @@ public class ChatHub : Hub
         db.ListTrim(groupName, totalMessages, 0);
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();
         await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
+
+        _newMessageIndicators[groupName] = false;
+    }
+
+    public bool AnyGroupHasNewMessages()
+    {
+        return _newMessageIndicators.Values.Any(value => value);
     }
 }
