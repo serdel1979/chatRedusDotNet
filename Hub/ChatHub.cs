@@ -13,17 +13,46 @@ public class ChatHub : Hub
     {
         _redis = redis;
         _newMessageIndicators = new Dictionary<string, bool>();
+
+        InitializeNewMessageIndicators();
+
     }
+
+
+    private void InitializeNewMessageIndicators()
+    {
+        var server = _redis.GetServer(_redis.GetEndPoints().First());
+
+        // Obtener todas las claves de la base de datos
+        var keys = server.Keys();
+
+        var db = _redis.GetDatabase();
+
+        foreach (var key in keys)
+        {
+            // Obtener la cantidad de mensajes para cada clave
+            if(key != "usuariosDTO")
+            {
+                var count = db.ListLength(key);
+                _newMessageIndicators[key] = count > 0;
+            }
+           
+        }
+    }
+
+
     public async Task SendMessageChat(string groupName, string message)
     {
         var db = _redis.GetDatabase();
         db.ListRightPush(groupName, message);
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();  //db.ListRange("messages").Select(x => x.ToString()).ToList();
 
+        _newMessageIndicators[groupName] = messages.Count > 0;
 
-        _newMessageIndicators[groupName] = true;
+        //_newMessageIndicators[groupName] = true;
         //await Clients.Caller.SendAsync("LoadMessages", messages);
         await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, messages);
+        await Clients.Group(groupName).SendAsync("AnyGroupHasNewMessages", GetAnyGroupHasNewMessages());
 
     }
 
@@ -32,7 +61,8 @@ public class ChatHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
         var db = _redis.GetDatabase();
-        var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList(); ;
+        var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();
+            
 
         await Clients.Caller.SendAsync("LoadMessages", messages);
        // await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
@@ -47,6 +77,7 @@ public class ChatHub : Hub
 
         await Clients.Caller.SendAsync("LoadMessages", messages);
         // await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
+        await Clients.Group(groupName).SendAsync("AnyGroupHasNewMessages", GetAnyGroupHasNewMessages());
     }
 
     public async Task LeaveGroupChat(string groupName)
@@ -64,10 +95,12 @@ public class ChatHub : Hub
         db.ListTrim(groupName, totalMessages, 0);
         var messages = db.ListRange(groupName).Select(x => x.ToString()).ToList();
 
-        _newMessageIndicators[groupName] = false;
+        _newMessageIndicators[groupName] = messages.Count > 0;
 
-        await Clients.Group(groupName).SendAsync("ReceiveMessage", messages);
-       
+        //await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, messages);
+        await Clients.Caller.SendAsync("LoadMessages", messages);
+        await Clients.Group(groupName).SendAsync("AnyGroupHasNewMessages", GetAnyGroupHasNewMessages());
+
     }
 
     public bool AnyGroupHasNewMessages()
@@ -76,12 +109,19 @@ public class ChatHub : Hub
     }
 
 
+    public bool GetAnyGroupHasNewMessages()
+    {
+        return AnyGroupHasNewMessages();
+    }
+
+    public bool AnyMessage(string groupName)
+    {
+        return _newMessageIndicators[groupName];
+    }
+
+
     public Dictionary<string, bool> GetNewMessageIndicators()
     {
-        foreach (var kvp in _newMessageIndicators)
-        {
-            Console.WriteLine($"Group: {kvp.Key}, HasNewMessages: {kvp.Value}");
-        }
         return _newMessageIndicators;
     }
 
