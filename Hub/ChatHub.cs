@@ -97,7 +97,7 @@ public class ChatHub : Hub
 
         _newMessageIndicators[groupName] = messages.Count > 0;
 
-        //await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, messages);
+        await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, messages);
         await Clients.Caller.SendAsync("LoadMessages", groupName, messages);
         await Clients.Group(groupName).SendAsync("AnyGroupHasNewMessages", GetAnyGroupHasNewMessages());
 
